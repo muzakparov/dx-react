@@ -2,11 +2,12 @@ import { connect } from 'react-redux'
 import TokenPair, { TokenPairProps } from 'components/TokenPair'
 import { openOverlay, swapTokensInAPairAndReCalcClosingPrice, resetTokenPair } from 'actions'
 import { State } from 'types'
+import { toBigNumber } from 'web3/lib/utils/utils.js'
 
 const mapStateToProps = ({
   tokenList: { defaultTokenList, customTokenList, type },
   tokenPair: { sell, buy },
-  tokenBalances: { [sell && sell.address]: sellTokenBalance = 0, [buy && buy.address]: buyTokenBalance = 0 },
+  tokenBalances: { [sell && sell.address]: sellTokenBalance = toBigNumber(0), [buy && buy.address]: buyTokenBalance = toBigNumber(0) },
   }: State) => ({
     sellToken: sell,
     buyToken: buy,
