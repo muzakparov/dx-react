@@ -1,7 +1,11 @@
+const WAIT_FOR_SDK_TIMEOUT = 30000
+
 import { ProviderInterface } from './types'
 import { windowLoaded, promisify } from 'utils'
 import { Account } from 'types'
 import Web3 from 'web3'
+// import { resolve } from 'url';
+// import { rejects } from 'assert';
 
 const getProvider = () => {
   if (typeof window !== 'undefined' && window.web3) {
@@ -11,8 +15,35 @@ const getProvider = () => {
   return new Web3.providers.HttpProvider('http://localhost:8545')
 }
 
+const waitForWeb3Ready = async () => {
+  const win: any = window
+  if (window.web3 || win.imToken) {
+    // web3 or the SDK is already loaded
+    return window.web3
+  } else {
+    // If web3 is not loaded, we wait for the SDK to get injected
+    return new Promise((resolve, reject) => {
+      window.addEventListener('sdkReady', () => {
+        resolve(window.web3)
+      })
+
+      setTimeout(() => {
+        reject(new Error(`The web3 was not injected within ${WAIT_FOR_SDK_TIMEOUT / 1000}s`))
+      }, WAIT_FOR_SDK_TIMEOUT)
+    })
+  }
+}
+
 const setupWeb3 = async () => {
+  // Wait for window and web3 injection
   await windowLoaded
+  await waitForWeb3Ready()
+
+  if ((
+    typeof navigator !== 'undefined' && !navigator.onLine
+  ) || typeof window.web3  === 'undefined') {
+    throw 'Web3 connectivity issues due to client network connectivity loss'
+  }
 
   return new Web3(getProvider())
 }
@@ -21,8 +52,6 @@ export const promisedWeb3 = init()
 
 async function init(): Promise<ProviderInterface> {
   try {
-    if ((typeof navigator !== 'undefined' && !navigator.onLine) || typeof window.web3  === 'undefined') throw 'Web3 connectivity issues due to client network connectivity loss'
-
     const web3 = await setupWeb3()
 
     const getAccounts = promisify(web3.eth.getAccounts, web3.eth)
